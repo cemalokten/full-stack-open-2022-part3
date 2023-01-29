@@ -2,8 +2,14 @@
 // const http = require('http')
 const express = require('express')
 const moment = require('moment')
+const morgan = require('morgan')
+const cors = require('cors')
+
 const app = express()
 
+app.use(cors())
+app.use(express.json())
+app.use(express.static('build'))
 
 let persons = [
   {
@@ -28,6 +34,13 @@ let persons = [
   }
 ];
 
+morgan.token('id', function getId(req) {
+  const { name, number } = req.body
+  return JSON.stringify({ name, number })
+})
+
+app.use(morgan(':method :url :status :id - :response-time ms'))
+
 const info = `
 Phonebook has info for ${persons.length} people<br>
 <br>
@@ -42,9 +55,9 @@ app.get('/info', (req, res) => {
   res.send(info)
 })
 
-app.get('/api/persons/:_id', (req, res) => {
-  const { _id } = req.params
-  const person = persons.filter((person) => person.id === Number(_id))
+app.get('/api/persons/:id', (req, res) => {
+  const { id } = req.params
+  const person = persons.filter((person) => person.id === Number(id))
   if (person.length > 0) return res.json(person)
   return res.status(404).end()
 })
@@ -52,9 +65,20 @@ app.get('/api/persons/:_id', (req, res) => {
 app.delete('/api/persons/delete/:id', (req, res) => {
   const id = Number(req.params.id)
   persons = persons.filter((p) => p.id !== id)
-  res.status(204).end()
+  res.json().status(204).end()
 })
 
-const PORT = 3001
-app.listen(PORT)
-console.log(`Server running on port ${PORT}`)
+app.post('/api/persons/', (req, res) => {
+  const { name, number } = req.body
+  if (name === undefined || number === undefined) return res.json({ error: 'The name or number is missing' }).status(404)
+  const checkName = persons.filter(({ name: _name }) => _name === name)
+  if (checkName.length > 0) return res.json({ error: 'name must be unique' }).status(404)
+  const id = Math.floor(Math.random() * 999)
+  persons.push({ id, name, number })
+  return res.json({ id, name, number }).status(204).end()
+})
+
+const PORT = process.env.PORT || 3001
+  app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})
