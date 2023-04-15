@@ -6,9 +6,11 @@ const dotenv = require("dotenv");
 const {
   getAllPersons,
   addPerson,
+  updatePerson,
   deleteOnePerson,
   findPersonById,
   getInfo,
+  errorHandler,
 } = require("./mongo");
 const { connectDB, disconnectDB } = require("./connection");
 
@@ -30,7 +32,7 @@ morgan.token("id", function getId(req) {
 app.use(morgan(":method :url :status :id - :response-time ms"));
 
 app.get("/api/persons", async (req, res, next) => {
-  const persons = await getAllPersons(next);
+  const persons = await getAllPersons(next, res);
   res.json(persons);
 });
 
@@ -51,13 +53,12 @@ app.post("/api/persons/", async (req, res, next) => {
   await addPerson(name, number, res, next);
 });
 
-app.use((err, req, res, next) => {
-  console.log(err);
-  res
-    .status(err.status || 500)
-    .json({ error: err.message })
-    .end();
+app.put("/api/persons/update/:id", async (req, res, next) => {
+  const { id } = req.params;
+  await updatePerson(req.body, id, res);
 });
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
@@ -73,4 +74,3 @@ process.on("SIGINT", async () => {
   console.log("SIGINT disconnected from database");
   await disconnectDB();
 });
-
