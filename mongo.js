@@ -2,8 +2,18 @@ const mongoose = require("mongoose");
 const moment = require("moment");
 
 const personSchema = new mongoose.Schema({
-  name: { type: String, minLength: 3, required: true },
-  number: Number,
+  name: { type: String, minLength: 3, required: [true, "Name is required"] },
+  number: {
+    type: Number,
+    minLength: 8,
+    required: [true, "Number is required"],
+    validate: {
+      validator(number) {
+        return /^\d{2,3}-\d{7,8}$/.test(number);
+      },
+      message: (props) => `${props.value} is not a valid phone number!`,
+    },
+  },
 });
 
 const Person = mongoose.model("Person", personSchema);
@@ -13,7 +23,6 @@ const getAllPersons = async (next, res) => {
     const result = await Person.find({});
     return result;
   } catch (e) {
-    console.log('getAllPersons', e);
     next({ status: 500, message: "Error: getAllPersons failed" });
   }
 };
@@ -40,7 +49,6 @@ const updatePerson = async (person, id, res, next) => {
     await Person.findByIdAndUpdate(id, { number }, { new: true });
     res.status(204).end();
   } catch (e) {
-    console.log('Update person', e);
     next({ status: 500, message: "Internal server error" });
   }
 };
@@ -50,7 +58,6 @@ const deleteOnePerson = async ({ id }, res, next) => {
     await Person.deleteOne({ _id: id });
     res.status(204).end();
   } catch (e) {
-    console.log('DeleteOnePerson', e);
     next({ status: 500, message: "Internal server error" });
   }
 };
@@ -61,7 +68,6 @@ const findPersonById = async (id, res, next) => {
     if (person) return res.json(person);
     next({ status: 404, message: "Person not found" });
   } catch (e) {
-    console.log('findPersonById', e);
     next({ status: 500, message: "Internal server error" });
   }
 };
@@ -81,9 +87,9 @@ const getInfo = async (res, next) => {
 };
 
 const errorHandler = (error, request, response, next) => {
-  if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'Malformatted ID' });
-  } else if (error.name === 'ValidationError') {
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "Malformatted ID" });
+  } else if (error.name === "ValidationError") {
     return response.status(400).json({ error: error.message });
   }
   next(error);

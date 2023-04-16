@@ -2,9 +2,7 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const password = process.env.MONGO_PASSWORD;
-    const url = `mongodb+srv://admin:${password}@cluster0.dnn600n.mongodb.net/?retryWrites=true&w=majority`;
-
+    const url = process.env.MONGODB_URI;
     mongoose.set("strictQuery", false);
     await mongoose.connect(url);
     console.log("Connected to the database");
